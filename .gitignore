@@ -1,5 +1,7 @@
 *.py[co]
 
+.gaedata/datastore
+
 # Packages
 *.egg
 *.egg-info
