@@ -1,6 +1,9 @@
 *.py[co]
 
 .gaedata/datastore
+gae-chong-server.pyproj
+gae-chong-server.sln
+gae-chong-server.suo
 
 # Packages
 *.egg
