@@ -18,6 +18,13 @@ class BoardSpace():
     PLAYER_1_BLOCKER = 3
     PLAYER_2_BLOCKER = 4
 
+MOVE_TYPES = (
+    (BoardSpace.PLAYER_1, 'Player 1 moved'),
+    (BoardSpace.PLAYER_1_BLOCKER, 'Player 1 played blocker'),
+    (BoardSpace.PLAYER_2, 'Player 2 moved'),
+    (BoardSpace.PLAYER_2_BLOCKER, 'Player 2 played blocker')
+)
+
 class MatchManager(models.Manager):
     
     def create_match(self, chonger_1, chonger_2, match_type, public):
@@ -96,7 +103,17 @@ class Game(models.Model):
     board = ListField()
     
     objects = GameManager()
+
+    def get_last_move(self):
+        return self.moves.all().order_by('-move_number')[0]
     
-                 
+class Move(models.Model):
+    game = models.ForeignKey(Game, related_name="moves")
+    player = models.ForeignKey(UserProfile)
+    move_type = models.IntegerField(choices=MOVE_TYPES)
+    move_number = models.IntegerField()
+    move_x_pos = models.IntegerField()
+    move_y_pos = models.IntegerField()
+    
                 
                 
