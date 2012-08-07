@@ -50,6 +50,9 @@ class UserProfileManager(models.Manager):
             display_name = default_display_name
         )
         return up
+    
+    def get_user(self, token):
+        return self.get(google_id=token)
 
 class UserProfile(models.Model):
     email = models.EmailField()
