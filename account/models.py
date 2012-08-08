@@ -42,24 +42,34 @@ VERB_SAMPLES = [
 
 class UserProfileManager(models.Manager):
     
-    def create_userprofile(self, email, google_id):
+    def create_userprofile(self, phone_id):
         default_display_name = '%s %s %s' % (random.choice(ADJECTIVE_SAMPLES), random.choice(NOUN_SAMPLES), random.choice(VERB_SAMPLES))
         up = self.create(
-            email = email,
-            google_id = google_id,
+            phone_id = phone_id,
             display_name = default_display_name
         )
-        return up
+        return up.json()
     
-    def get_user(self, token):
-        return self.get(google_id=token)
+    def get_user(self, phone_id):
+        return self.get(phone_id=phone_id).json()
 
 class UserProfile(models.Model):
-    email = models.EmailField()
-    google_id = models.CharField(max_length=75)
+    phone_id = models.CharField(max_length=75)
     display_name = models.CharField(max_length=75)
     wins = models.IntegerField(default=0)
     losses = models.IntegerField(default=0)
     rating = models.IntegerField(default=1200)
     
     objects = UserProfileManager()
+    
+    def json(self):
+        up = {}
+        up['phone_id'] = self.phone_id
+        up['display_name'] = self.display_name
+        up['wins'] = self.wins
+        up['losses'] = self.losses
+        up['rating'] = self.rating
+        return up
+    
+        
+        
