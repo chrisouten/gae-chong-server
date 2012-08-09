@@ -46,6 +46,11 @@ JUMP_DIRS = [
 class MatchManager(models.Manager):
     
     def create_match(self, chonger_1, chonger_2, match_type, public):
+        if chonger_2 is None:
+            chonger_2 = UserProfile.objects.get_random_user(chonger_1)
+        else:
+            chonger_2 = UserProfile.objects.get(id=chonger_2)
+        chonger_1 = UserProfile.objects.get(id=chonger_1)
         match = self.create(
             chonger_1 = chonger_1,
             chonger_2 = chonger_2,
@@ -56,25 +61,36 @@ class MatchManager(models.Manager):
         return match
 
 class Match(models.Model):
-    chonger_1 = models.ForeignKey(UserProfile)
-    chonger_2 = models.ForeignKey(UserProfile)
+    chonger_1 = models.ForeignKey(UserProfile, related_name='chonger_1')
+    chonger_2 = models.ForeignKey(UserProfile, related_name='chonger_2')
     chonger_1_wins = models.IntegerField(default=0)
     chonger_2_wins = models.IntegerField(default=0)
     match_type = models.IntegerField(choices=MATCH_TYPES)
-    winner = models.ForeignKey(UserProfile, null=True)
+    match_winner = models.ForeignKey(UserProfile, null=True, related_name='match_winner')
     public = models.BooleanField(default=True)
     
     objects = MatchManager()
     
     def create_game(self):
-        if self.chonger_1_wins < self.match_type or self.chonger_2_wins < self.match_type:
+        if self.chonger_1_wins < self.match_type and self.chonger_2_wins < self.match_type:
             Game.objects.create_game(self)
         else:
             if self.chonger_1_wins == self.match_type:
-                winner = self.chonger_1
+                self.match_winner = self.chonger_1
             else:
-                winner = self.chonger_2
+                self.match_winner = self.chonger_2
             self.save()
+
+    def json(self):
+        match = {}
+        match['chonger_1'] = self.chonger_1.json()
+        match['chonger_2'] = self.chonger_2.json()
+        match['chonger_1_wins'] = self.chonger_1_wins
+        match['chonger_2_wins'] = self.chonger_2_wins
+        match['match_type'] = self.match_type
+        match['match_winner'] = self.match_winner
+        match['public'] = self.public
+        return match
 
 class GameManager(models.Manager):
     p1_start= [7,4]
@@ -118,12 +134,12 @@ class GameManager(models.Manager):
     
 class Game(models.Model):
     match = models.ForeignKey(Match, related_name="games")
-    player_1 = models.ForeignKey(UserProfile)
-    player_2 = models.ForeignKey(UserProfile)
-    current_turn = models.ForeignKey(UserProfile)
+    player_1 = models.ForeignKey(UserProfile, related_name='player_1')
+    player_2 = models.ForeignKey(UserProfile, related_name='player_2')
+    current_turn = models.ForeignKey(UserProfile, related_name='current_turn')
     player_1_blockers = models.IntegerField(default=6)
     player_2_blockers = models.IntegerField(default=7)
-    winner = models.ForeignKey(UserProfile, null=True)
+    winner = models.ForeignKey(UserProfile, null=True, related_name='winner')
     board = ListField()
     
     objects = GameManager()
@@ -134,7 +150,7 @@ class Game(models.Model):
     def make_move(self, user_token, move_info):
         if not all(k in ['move_type','move_position'] for k in move_info.keys()):
             return {'error': 'Not all move data was submitted'}
-        submitting_user = User.objects.get_user(user_token)
+        submitting_user = UserProfile.objects.get_user(user_token)
         pos = move_info['move_position']
         if pos[0] < 0 or pos[0] > 7 or pos[1] < 0 or pos[1] > 7:
             return {'error': 'Not a valid move position'}
@@ -158,7 +174,7 @@ class Game(models.Model):
             vm = self.get_valid_moves()
             if pos not in vm:
                 return {'error': 'Not a valid move position for your pawn'}
-            board[pos[0]][pos[1]] = move_info['move_type']
+            self.board[pos[0]][pos[1]] = move_info['move_type']
             Move.objects.create_move(self, submitting_user, move_info)
             self.save()
         
@@ -188,22 +204,21 @@ class Game(models.Model):
             x = player_position[0] + move[0]
             y = player_position[1] + move[1]
             try:
-                if board[x][y] == BoardSpace.EMPTY:
+                if self.board[x][y] == BoardSpace.EMPTY:
                     vm.append([x,y])
             except IndexError:
                 pass
         for jump in JUMP_DIRS:
-            x = player_position[0] + move[0]
-            y = player_position[1] + move[1]
-            x2 = x + move[0]
-            y2 = y + move[1]
+            x = player_position[0] + jump[0]
+            y = player_position[1] + jump[1]
+            x2 = x + jump[0]
+            y2 = y + jump[1]
             try:
-                if board[x][y] == blocker:
-                    if board[x2][y2] == BoardSpace.EMPTY:
-                        vm.append([x2,y2])
+                if self.board[x][y] == blocker and self.board[x2][y2] == BoardSpace.EMPTY:
+                    vm.append([x2,y2])
             except IndexError:
                 pass
-            
+        
         return vm
         
     def get_player_position(self, player):
@@ -213,7 +228,7 @@ class Game(models.Model):
                     return [x,y]
         
     def check_win(self):
-        win = (False, None)
+        win = [False, None]
         p1 = self.get_player_position(BoardSpace.PLAYER_1)
         p2 = self.get_player_position(BoardSpace.PLAYER_2)
         if p1[0] == 0:
@@ -237,8 +252,8 @@ class Game(models.Model):
         player_1 = {}
         player_2 = {}
         match = {}
+        return json_data
         
-        pass
     
 class MoveManager(models.Manager):
     
@@ -249,14 +264,14 @@ class MoveManager(models.Manager):
             player = player,
             move_type = move_info['move_type'],
             move_number = move_number,
-            move_x_pos = move['move_position'][0],
-            move_y_pos = move['move_position'][1]
+            move_x_pos = move_info['move_position'][0],
+            move_y_pos = move_info['move_position'][1]
         )
         m.save()
     
 class Move(models.Model):
     game = models.ForeignKey(Game, related_name="moves")
-    player = models.ForeignKey(UserProfile)
+    player = models.ForeignKey(UserProfile, related_name='player')
     move_type = models.IntegerField(choices=MOVE_TYPES)
     move_number = models.IntegerField()
     move_x_pos = models.IntegerField()

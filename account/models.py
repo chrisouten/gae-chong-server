@@ -48,10 +48,15 @@ class UserProfileManager(models.Manager):
             phone_id = phone_id,
             display_name = default_display_name
         )
-        return up.json()
+        return up
     
     def get_user(self, phone_id):
-        return self.get(phone_id=phone_id).json()
+        return self.get(phone_id=phone_id)
+
+    def get_random_user(self, originator):
+        users = self.exclude(id=originator)
+        count = users.count()
+        return users[random.randint(0, count -1)]
 
 class UserProfile(models.Model):
     phone_id = models.CharField(max_length=75)
@@ -64,6 +69,7 @@ class UserProfile(models.Model):
     
     def json(self):
         up = {}
+        up['id'] = self.id
         up['phone_id'] = self.phone_id
         up['display_name'] = self.display_name
         up['wins'] = self.wins
