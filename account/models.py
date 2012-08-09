@@ -1,4 +1,5 @@
 import random
+from itertools import chain
 
 from django.db import models
 
@@ -57,6 +58,16 @@ class UserProfileManager(models.Manager):
         users = self.exclude(id=originator)
         count = users.count()
         return users[random.randint(0, count -1)]
+        
+    def change_user_name(self, phone_id, display_name):
+        up = UserProfile.objects.get(phone_id=phone_id)
+        try:
+            UserProfile.objects.get(display_name=display_name)
+            return {'error': 'That name is already taken'}
+        except UserProfile.DoesNotExist:
+            up.display_name = display_name
+            up.save()
+            return up.json()
 
 class UserProfile(models.Model):
     phone_id = models.CharField(max_length=75)
@@ -76,6 +87,10 @@ class UserProfile(models.Model):
         up['losses'] = self.losses
         up['rating'] = self.rating
         return up
+    
+    def get_all_matches(self):
+        matches = list(chain(self.chonger_1.all(), self.chonger_2.all()))
+        return [m.json() for m in matches]
     
         
         

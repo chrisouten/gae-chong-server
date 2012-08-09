@@ -10,19 +10,49 @@ class MatchTest(TestCase):
         self.u3 = UserProfile.objects.create_userprofile('00000')
 
     def create_match(self):
-        return Match.objects.create_match(self.u1.id, None, MATCH_TYPES[1][0], True)
+        return Match.objects.create_match(self.u1.id, None, MATCH_TYPES[1][0], True, True)
+    
+    def join_match(self):
+        Match.objects.create_match(self.u2.id, None, MATCH_TYPES[1][0], True, True)
         
     def test_create_match(self):
         m = self.create_match()
         self.assertNotEqual(m.chonger_2, self.u1)
         self.assertTrue(m.public)
 
+    def test_no_created_game(self):
+        m = self.create_match()
+        self.assertEqual(m.games.count(), 0)
+        
+    def test_dont_join_different_match_types(self):
+        m = self.create_match()
+        m2 = Match.objects.create_match(self.u2.id, None, MATCH_TYPES[0][0], True, True)
+        self.assertEqual(m.games.count(), 0)
+        self.assertEqual(m2.games.count(), 0)
+        
+    def test_multiple_matches_created(self):
+        m = self.create_match()
+        self.join_match()
+        m2 = Match.objects.create_match(self.u3.id, None, MATCH_TYPES[1][0], True, True)
+        self.assertEqual(m.games.count(), 1)
+        self.assertEqual(m2.games.count(), 0)
+        
+    def test_get_all_matches(self):
+        m = self.create_match()
+        self.join_match()
+        m2 = Match.objects.create_match(self.u3.id, None, MATCH_TYPES[1][0], True, True)
+        Match.objects.create_match(self.u1.id, None, MATCH_TYPES[1][0], True, True)
+        matches = self.u1.get_all_matches()
+        self.assertEqual(len(matches), 2)
+
     def test_create_game(self):
         m = self.create_match()
+        self.join_match()
         self.assertEqual(m.games.count(), 1)
 
     def test_win_condition(self):
         m = self.create_match()
+        self.join_match()
         m.chonger_1_wins = 2
         m.save()
         m.create_game()
@@ -30,6 +60,7 @@ class MatchTest(TestCase):
 
     def test_json(self):
         m = self.create_match()
+        self.join_match()
         mj = m.json()
         self.assertEqual(mj['chonger_1']['id'], self.u1.id)
         self.assertEqual(mj['match_type'], MATCH_TYPES[1][0])
@@ -44,7 +75,12 @@ class GameTest(TestCase):
         self.u3 = UserProfile.objects.create_userprofile('00000')
 
     def create_match(self):
-        return Match.objects.create_match(self.u1.id, None, MATCH_TYPES[1][0], True)
+        m = Match.objects.create_match(self.u1.id, None, MATCH_TYPES[1][0], True, True)
+        self.join_match()
+        return m
+        
+    def join_match(self):
+        Match.objects.create_match(self.u2.id, None, MATCH_TYPES[1][0], True, True)
 
     def test_switch_p1_p2_on_next_game(self):
         m = self.create_match()

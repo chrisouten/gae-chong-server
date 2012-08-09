@@ -45,29 +45,40 @@ JUMP_DIRS = [
 
 class MatchManager(models.Manager):
     
-    def create_match(self, chonger_1, chonger_2, match_type, public):
+    def create_match(self, chonger_1, chonger_2, match_type, public, ranked):
+        chonger_1 = UserProfile.objects.get(id=chonger_1)
         if chonger_2 is None:
-            chonger_2 = UserProfile.objects.get_random_user(chonger_1)
+            #Lets try and find an existing match
+            matches = Match.objects.filter(match_type=match_type, public=public, ranked=ranked, chonger_2=None).exclude(chonger_1=chonger_1)
+            if matches:
+                match = matches[0]
+                match.chonger_2 = chonger_1
+                match.save()
+                match.create_game()
+                return match
         else:
             chonger_2 = UserProfile.objects.get(id=chonger_2)
-        chonger_1 = UserProfile.objects.get(id=chonger_1)
+        
         match = self.create(
             chonger_1 = chonger_1,
             chonger_2 = chonger_2,
             match_type = match_type,
-            public = public
+            public = public,
+            ranked = ranked
         )
-        match.create_game()
+        if chonger_2:
+            match.create_game()
         return match
 
 class Match(models.Model):
     chonger_1 = models.ForeignKey(UserProfile, related_name='chonger_1')
-    chonger_2 = models.ForeignKey(UserProfile, related_name='chonger_2')
+    chonger_2 = models.ForeignKey(UserProfile, null=True, related_name='chonger_2')
     chonger_1_wins = models.IntegerField(default=0)
     chonger_2_wins = models.IntegerField(default=0)
     match_type = models.IntegerField(choices=MATCH_TYPES)
     match_winner = models.ForeignKey(UserProfile, null=True, related_name='match_winner')
     public = models.BooleanField(default=True)
+    ranked = models.BooleanField(default=True)
     
     objects = MatchManager()
     
@@ -84,7 +95,10 @@ class Match(models.Model):
     def json(self):
         match = {}
         match['chonger_1'] = self.chonger_1.json()
-        match['chonger_2'] = self.chonger_2.json()
+        if self.chonger_2:
+            match['chonger_2'] = self.chonger_2.json()
+        else:
+            match['chonger_2'] = None
         match['chonger_1_wins'] = self.chonger_1_wins
         match['chonger_2_wins'] = self.chonger_2_wins
         match['match_type'] = self.match_type
