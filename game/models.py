@@ -46,7 +46,6 @@ JUMP_DIRS = [
 class MatchManager(models.Manager):
     
     def create_match(self, chonger_1, chonger_2, match_type, public, ranked):
-        chonger_1 = UserProfile.objects.get(id=chonger_1)
         if chonger_2 is None:
             #Lets try and find an existing match
             matches = Match.objects.filter(match_type=match_type, public=public, ranked=ranked, chonger_2=None).exclude(chonger_1=chonger_1)
@@ -56,9 +55,7 @@ class MatchManager(models.Manager):
                 match.save()
                 match.create_game()
                 return match
-        else:
-            chonger_2 = UserProfile.objects.get(id=chonger_2)
-        
+
         match = self.create(
             chonger_1 = chonger_1,
             chonger_2 = chonger_2,
@@ -94,16 +91,16 @@ class Match(models.Model):
 
     def json(self):
         match = {}
+        games = [g.json() for g in self.games.all()]
+        match['id'] = self.id
         match['chonger_1'] = self.chonger_1.json()
-        if self.chonger_2:
-            match['chonger_2'] = self.chonger_2.json()
-        else:
-            match['chonger_2'] = None
+        match['chonger_2'] = self.chonger_2.json() if self.chonger_2 else None
         match['chonger_1_wins'] = self.chonger_1_wins
         match['chonger_2_wins'] = self.chonger_2_wins
         match['match_type'] = self.match_type
-        match['match_winner'] = self.match_winner
+        match['match_winner'] = self.match_winner.json() if self.match_winner else None
         match['public'] = self.public
+        match['games'] = games
         return match
 
 class GameManager(models.Manager):
@@ -161,17 +158,18 @@ class Game(models.Model):
     def get_last_move(self):
         return self.moves.all().order_by('-move_number')[0]
         
-    def make_move(self, user_token, move_info):
-        if not all(k in ['move_type','move_position'] for k in move_info.keys()):
+    def make_move(self, submitting_user, move_info):
+        if 'move_type' not in move_info.keys() or 'move_position' not in move_info.keys():
             return {'error': 'Not all move data was submitted'}
-        submitting_user = UserProfile.objects.get_user(user_token)
+        if move_info['move_type'] not in [BoardSpace.PLAYER_1, BoardSpace.PLAYER_1_BLOCKER, BoardSpace.PLAYER_2, BoardSpace.PLAYER_2_BLOCKER]:
+            return {'error': 'Invalid move type'}
         pos = move_info['move_position']
         if pos[0] < 0 or pos[0] > 7 or pos[1] < 0 or pos[1] > 7:
             return {'error': 'Not a valid move position'}
         if submitting_user != self.current_turn:
             return {'error': 'It is not your turn'}
         if move_info['move_type'] in [BoardSpace.PLAYER_1_BLOCKER, BoardSpace.PLAYER_2_BLOCKER]:
-            if self.board[pos[0]][pos[1]] != BoardSpace.EMPTY:
+            if self.board[pos[0]][pos[1]] != BoardSpace.EMPTY or pos[0] == 7 or pos[0] == 0:
                 return {'error': 'Invalid Block Placement'}
             if (self.player_1 == submitting_user and self.player_1_blockers == 0) \
                 or (self.player_2 == submitting_user and self.player_2_blockers == 0):
@@ -262,11 +260,19 @@ class Game(models.Model):
         return win
     
     def json(self):
-        json_data = {}
-        player_1 = {}
-        player_2 = {}
-        match = {}
-        return json_data
+        game = {}
+        game['id'] = self.id
+        game['player_1'] = self.player_1.json()
+        game['player_2'] = self.player_2.json()
+        game['match_id'] = self.match.id
+        game['current_turn'] = self.current_turn.json()
+        game['player_1_blockers'] = self.player_1_blockers
+        game['player_2_blockers'] = self.player_2_blockers
+        game['board'] = self.board
+        game['winner'] = self.winner.json() if self.winner else None
+        game['moves'] = [m.json() for m in self.moves.all()]
+
+        return game
         
     
 class MoveManager(models.Manager):
@@ -292,6 +298,17 @@ class Move(models.Model):
     move_y_pos = models.IntegerField()
     
     objects = MoveManager()
+
+    def json(self):
+        move = {}
+        move['id'] = self.id
+        move['player'] = self.player.json()
+        move['move_type'] = self.move_type
+        move['move_number'] = self.move_number
+        move['move_number'] = self.move_number
+        move['move_x_pos'] = self.move_x_pos
+        move['move_y_pos'] = self.move_y_pos
+        return move
     
                 
                 
