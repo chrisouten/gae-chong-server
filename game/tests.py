@@ -71,7 +71,7 @@ class MatchTest(TestCase):
         self.join_match()
         mj = m.json()
         self.assertEqual(mj['chonger_1']['id'], self.u1.id)
-        self.assertEqual(mj['match_type'], MATCH_TYPES[1][0])
+        self.assertEqual(mj['match_type'], MATCH_TYPES[1][1])
         self.assertEqual(mj['chonger_2_wins'], 0)
         self.assertEqual(mj['match_winner'], None)
         

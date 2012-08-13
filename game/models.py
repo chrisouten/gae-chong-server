@@ -97,7 +97,7 @@ class Match(models.Model):
         match['chonger_2'] = self.chonger_2.json() if self.chonger_2 else None
         match['chonger_1_wins'] = self.chonger_1_wins
         match['chonger_2_wins'] = self.chonger_2_wins
-        match['match_type'] = self.match_type
+        match['match_type'] = self.get_match_type_display()
         match['match_winner'] = self.match_winner.json() if self.match_winner else None
         match['public'] = self.public
         match['games'] = games
