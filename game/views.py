@@ -13,6 +13,8 @@ def create_match(request, chonger_2, match_type, public, ranked):
             return {'error':'Could not find that opponent'}
         except ValueError:
             return {'error':'Must submit an integer for opponent id'}
+    else:
+        chonger_2 = None
     m = Match.objects.create_match(request.user, chonger_2, match_type, public, ranked)
     return m.json()
     
