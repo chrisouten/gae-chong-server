@@ -89,6 +89,8 @@ class UserProfile(models.Model):
         return [m.json() for m in matches]
 
     def change_username(self, display_name):
+        if self.display_name == display_name:
+            return self.json()
         valid = UserProfile.objects.check_existing_username(display_name)
         if valid:
             self.display_name = display_name
