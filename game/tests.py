@@ -161,7 +161,7 @@ class GameViewTest(TestCase):
         return UserProfile.objects.create_userprofile(phone_id)
 
     def test_create_match(self):
-        m = create_match(FakeRequest(), self.u1.phone_id, self.u1.phone_id, self.u2.id, 1, True, True)        
+        m = create_match(FakeRequest(), self.u1.phone_id, self.u1.phone_id, self.u2.display_name, 1, True, True)        
         self.assertEqual(m['chonger_1']['id'], self.u1.id)
         self.assertEqual(m['chonger_2']['id'], self.u2.id)
 
@@ -179,7 +179,7 @@ class GameViewTest(TestCase):
         self.assertTrue('error' in m.keys())
 
     def test_get_match(self):
-        m = create_match(FakeRequest(), self.u1.phone_id, self.u1.phone_id, self.u2.id, 1, True, True)
+        m = create_match(FakeRequest(), self.u1.phone_id, self.u1.phone_id, self.u2.display_name, 1, True, True)
         gm = get_match(FakeRequest(), self.u1.phone_id, self.u1.phone_id, m['id'])
         self.assertEqual(gm['id'], m['id'])
         self.assertEqual(gm['chonger_1']['id'], self.u1.id)
@@ -197,7 +197,7 @@ class GameViewTest(TestCase):
         self.assertTrue('error' in gm.keys())
 
     def test_get_game(self):
-        m = create_match(FakeRequest(), self.u1.phone_id, self.u1.phone_id, self.u2.id, 1, True, True)
+        m = create_match(FakeRequest(), self.u1.phone_id, self.u1.phone_id, self.u2.display_name, 1, True, True)
         gg = get_game(FakeRequest(), self.u1.phone_id, self.u1.phone_id, m['games'][0]['id'])
         self.assertEqual(gg['id'], m['games'][0]['id'])
 
@@ -212,7 +212,7 @@ class GameViewTest(TestCase):
         self.assertTrue('error' in gg.keys())
 
     def test_submit_move(self):
-        m = create_match(FakeRequest(), self.u1.phone_id, self.u1.phone_id, self.u2.id, 1, True, True)
+        m = create_match(FakeRequest(), self.u1.phone_id, self.u1.phone_id, self.u2.display_name, 1, True, True)
         gg = get_game(FakeRequest(), self.u1.phone_id, self.u1.phone_id, m['games'][0]['id'])
         cp = UserProfile.objects.get(id=gg['current_turn']['id'])
         move_info = {'move_type':1, 'move_position':[6,4]}
@@ -220,7 +220,7 @@ class GameViewTest(TestCase):
         self.assertEqual(sm['current_turn']['id'], gg['player_2']['id'])
 
     def test_invalid_block_placement(self):
-        m = create_match(FakeRequest(), self.u1.phone_id, self.u1.phone_id, self.u2.id, 1, True, True)
+        m = create_match(FakeRequest(), self.u1.phone_id, self.u1.phone_id, self.u2.display_name, 1, True, True)
         gg = get_game(FakeRequest(), self.u1.phone_id, self.u1.phone_id, m['games'][0]['id'])
         cp = UserProfile.objects.get(id=gg['current_turn']['id'])
         move_info = {'move_type':3, 'move_position':[7,3]}
@@ -234,7 +234,7 @@ class GameViewTest(TestCase):
         self.assertTrue('error' in sm.keys())
 
     def test_invalid_move_placement(self):
-        m = create_match(FakeRequest(), self.u1.phone_id, self.u1.phone_id, self.u2.id, 1, True, True)
+        m = create_match(FakeRequest(), self.u1.phone_id, self.u1.phone_id, self.u2.display_name, 1, True, True)
         gg = get_game(FakeRequest(), self.u1.phone_id, self.u1.phone_id, m['games'][0]['id'])
         cp = UserProfile.objects.get(id=gg['current_turn']['id'])
         move_info = {'move_type':1, 'move_position':[1,4]}
@@ -242,7 +242,7 @@ class GameViewTest(TestCase):
         self.assertTrue('error' in sm.keys())
 
     def test_invalid_move_info(self):
-        m = create_match(FakeRequest(), self.u1.phone_id, self.u1.phone_id, self.u2.id, 1, True, True)
+        m = create_match(FakeRequest(), self.u1.phone_id, self.u1.phone_id, self.u2.display_name, 1, True, True)
         gg = get_game(FakeRequest(), self.u1.phone_id, self.u1.phone_id, m['games'][0]['id'])
         cp = UserProfile.objects.get(id=gg['current_turn']['id'])
         move_info = {'move_type':1}
@@ -253,7 +253,7 @@ class GameViewTest(TestCase):
         self.assertTrue('error' in sm.keys())
 
     def test_wrong_player_turn(self):
-        m = create_match(FakeRequest(), self.u1.phone_id, self.u1.phone_id, self.u2.id, 1, True, True)
+        m = create_match(FakeRequest(), self.u1.phone_id, self.u1.phone_id, self.u2.display_name, 1, True, True)
         gg = get_game(FakeRequest(), self.u1.phone_id, self.u1.phone_id, m['games'][0]['id'])
         cp = UserProfile.objects.get(id=gg['player_2']['id'])
         move_info = {'move_type':1, 'move_position':[6,4]}

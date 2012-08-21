@@ -8,7 +8,7 @@ from utils import chong_authenticate
 def create_match(request, chonger_2, match_type, public, ranked):
     if chonger_2:
         try:
-            chonger_2 = UserProfile.objects.get(id=chonger_2)
+            chonger_2 = UserProfile.objects.get(display_name=chonger_2)
         except UserProfile.DoesNotExist:
             return {'error':'Could not find that opponent'}
         except ValueError:
